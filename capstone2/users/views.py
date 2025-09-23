@@ -1,3 +1,8 @@
-from django.shortcuts import render
+from rest_framework import generics
+from users.models import User
+from users.serializers import UserSignUpSerializer
 
-# Create your views here.
+
+class SignUpView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSignUpSerializer
