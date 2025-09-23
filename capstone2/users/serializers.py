@@ -4,7 +4,7 @@ from users.models import User
 class UserSignUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'short_description']
+        fields = ['username', 'email', 'password', 'phone_number']
         extra_kwargs = {
             'password': {'write_only': True}
         }
@@ -14,6 +14,6 @@ class UserSignUpSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            short_description=validated_data.get('short_description', "")
+            phone_number=validated_data['phone_number']
         )
         return user
