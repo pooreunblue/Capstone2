@@ -3,13 +3,14 @@ from rest_framework.validators import UniqueValidator
 from users.models import User
 
 class UserSignUpSerializer(serializers.ModelSerializer):
+    password2 = serializers.CharField(write_only=True, required=True)
+
     username = serializers.CharField(
         required=True,
         validators=[
             UniqueValidator(queryset=User.objects.all(), message="이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.")
         ],
     )
-
     email = serializers.EmailField(
         required=True,
         validators=[
@@ -19,12 +20,17 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'phone_number']
+        fields = ['username', 'email', 'password', 'password2', 'phone_number']
         extra_kwargs = {
             'password': {
                 'write_only': True
             },
         }
+
+    def validate(self, data):
+        if data['password'] != data['password2']:
+            raise serializers.ValidationError({"password": "비밀번호가 일치하지 않습니다."})
+        return data
 
     def createuser(self, validated_data):
         user = User.objects.create_user(
