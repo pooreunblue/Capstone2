@@ -32,7 +32,8 @@ class UserSignUpSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "비밀번호가 일치하지 않습니다."})
         return data
 
-    def createuser(self, validated_data):
+    def create(self, validated_data):
+        validated_data.pop('password2')
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
