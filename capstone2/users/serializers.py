@@ -8,13 +8,13 @@ class UserSignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
         validators=[
-            UniqueValidator(queryset=User.objects.all(), message="이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.")
+            UniqueValidator(queryset=User.objects.all(), message="이미 사용 중인 아이디입니다.")
         ],
     )
     email = serializers.EmailField(
         required=True,
         validators=[
-            UniqueValidator(queryset=User.objects.all(), message="이미 가입된 이메일입니다. 다른 이메일을 입력해주세요.")
+            UniqueValidator(queryset=User.objects.all(), message="이미 가입된 이메일입니다.")
         ]
     )
 
