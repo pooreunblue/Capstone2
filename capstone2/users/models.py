@@ -43,12 +43,12 @@ class DormInfo(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField("이름", max_length=10)
-    gender = models.CharField("성별", choices=GenderChoices.choices)
-    application_order = models.CharField("신청 차수", choices=ApplicationOrderChoices.choices)
-    building = models.CharField("지원 건물", choices=BuildingChoices.choices)
-    room = models.CharField("지원 호실", choices=RoomChoices.choices)
-    residency_period = models.CharField("거주 기간", choices=ResidencyPeriodChoices.choices)
-    is_accepted = models.CharField("합격 여부", choices=AcceptanceChoices.choices)
+    gender = models.CharField("성별", max_length=20, choices=GenderChoices.choices)
+    application_order = models.CharField("신청 차수", max_length=20, choices=ApplicationOrderChoices.choices)
+    building = models.CharField("지원 건물", max_length=20, choices=BuildingChoices.choices)
+    room = models.CharField("지원 호실", max_length=20, choices=RoomChoices.choices)
+    residency_period = models.CharField("거주 기간", max_length=20, choices=ResidencyPeriodChoices.choices)
+    is_accepted = models.CharField("합격 여부", max_length=20, choices=AcceptanceChoices.choices)
 
     def __str__(self):
         return f"{self.user.username}님의 기숙사 지원 정보"
