@@ -13,14 +13,42 @@ class User(AbstractUser):
 기숙사 지원 인증 정보 저장 모델
 """
 class DormInfo(models.Model):
+
+    class GenderChoices(models.TextChoices):
+        MALE = 'MALE', '남자'
+        FEMALE = 'FEMALE', '여자'
+
+    class ApplicationOrderChoices(models.TextChoices):
+        FIRST = 'FIRST', '1차'
+        SECOND = 'SECOND', '2차'
+
+    class BuildingChoices(models.TextChoices):
+        MYEONGDEOK = 'MYEONGDEOK', '명덕관'
+        MYEONGHYEON = 'MYEONGHYEON', '명현관'
+        DONG_3 = 'DONG_3', '3동'
+        DONG_4 = 'DONG_4', '4동'
+        DONG_5 = 'DONG_5', '5동'
+
+    class RoomChoices(models.TextChoices):
+        DOUBLE = 'DOUBLE', '2인실'
+        QUAD = 'QUAD', '4인실'
+
+    class ResidencyPeriodChoices(models.TextChoices):
+        SEMESTER = 'SEMESTER', '학기'
+        SIXMONTHS = 'SIXMONTHS', '6개월'
+
+    class AcceptanceChoices(models.TextChoices):
+        ACCEPTED = 'ACCEPTED', '선발'
+        NOT_ACCEPTED = 'NOT_ACCEPTED', '미선발'
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField("이름", max_length=10)
-    gender = models.CharField("성별", max_length=10)
-    application_order = models.CharField("신청 차수", max_length=10)
-    building = models.CharField("지원 건물", max_length=10)
-    room = models.CharField("지원 호실", max_length=10)
-    residency_period = models.CharField("거주 기간", max_length=10)
-    is_accepted = models.BooleanField("합격 여부", default=False)
+    gender = models.CharField("성별", choices=GenderChoices.choices)
+    application_order = models.CharField("신청 차수", choices=ApplicationOrderChoices.choices)
+    building = models.CharField("지원 건물", choices=BuildingChoices.choices)
+    room = models.CharField("지원 호실", choices=RoomChoices.choices)
+    residency_period = models.CharField("거주 기간", choices=ResidencyPeriodChoices.choices)
+    is_accepted = models.CharField("합격 여부", choices=AcceptanceChoices.choices)
 
     def __str__(self):
         return f"{self.user.username}님의 기숙사 지원 정보"
