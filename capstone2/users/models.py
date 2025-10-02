@@ -21,7 +21,6 @@ class DormInfo(models.Model):
     room = models.CharField("지원 호실", max_length=10)
     residency_period = models.CharField("거주 기간", max_length=10)
     is_accepted = models.BooleanField("합격 여부", default=False)
-    is_registered = models.BooleanField("등록 여부", default=False)
 
     def __str__(self):
         return f"{self.user.username}님의 기숙사 지원 정보"
