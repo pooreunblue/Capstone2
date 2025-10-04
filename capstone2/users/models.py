@@ -56,7 +56,7 @@ class DormInfo(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     is_smoker = models.BooleanField("흡연 여부", default=False)
-    has_snoring = models.BooleanField("코골이 여부", default=False)
+    has_sleeping_habits = models.BooleanField("잠버릇 여부", default=False)
     lifestyle_pattern = models.CharField("생활 패턴 (아침형/저녁형)", max_length=50)
     eat_in_room = models.BooleanField("실내 취식 여부", default=True)
 
