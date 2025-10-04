@@ -43,7 +43,7 @@ class DormInfo(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField("이름", max_length=10)
-    gender = models.CharField("성별", max_length=20, choices=GenderChoices.choices)
+    sex = models.CharField("성별", max_length=20, choices=GenderChoices.choices)
     application_order = models.CharField("신청 차수", max_length=20, choices=ApplicationOrderChoices.choices)
     building = models.CharField("지원 건물", max_length=20, choices=BuildingChoices.choices)
     room = models.CharField("지원 호실", max_length=20, choices=RoomChoices.choices)
