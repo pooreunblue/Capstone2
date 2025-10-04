@@ -23,6 +23,6 @@ class DormInfoAdmin(ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(ModelAdmin):
     fieldsets = [
-        (None, {'fields': 'user'}),
+        (None, {'fields': ('user',)}),
         ("Profile info", {'fields': ('is_smoker', 'has_snoring', 'lifestyle_pattern', 'eat_in_room')}),
     ]
