@@ -24,5 +24,5 @@ class DormInfoAdmin(ModelAdmin):
 class ProfileAdmin(ModelAdmin):
     fieldsets = [
         (None, {'fields': ('user',)}),
-        ("Profile info", {'fields': ('is_smoker', 'has_sleeping_habits', 'lifestyle_pattern', 'eat_in_room')}),
+        ("Profile info", {'fields': ('smoking_type', 'smoking_amount', 'sleeping_habit', 'sleeping_habit_freq', 'sleeping_habit_extent', 'life_style', 'wake_up_time', 'bed_time', 'cleaning_cycle', 'eating_in_room')}),
     ]
