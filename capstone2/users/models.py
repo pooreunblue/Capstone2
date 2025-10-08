@@ -62,9 +62,9 @@ class Profile(models.Model):
         MIXED = 'MIXED', '두 종류 이상 혼합 흡연'
 
     class SmokingAmountChoices(models.TextChoices):
-        LESS_THAN_FIVE = 'LESS_THAN_FIVE', '하루 5개비 미만'
-        LESS_THAN_TEN = 'LESS_THAN_TEN', '하루 10개비 미만'
-        MORE_THAN_TEN = 'MORE_THAN_TEN', '하루 10개비 이상'
+        LESS_THAN_FIVE = 'LESS_THAN_FIVE', '하루 5개비/번 미만'
+        LESS_THAN_TEN = 'LESS_THAN_TEN', '하루 10개비/번 미만'
+        MORE_THAN_TEN = 'MORE_THAN_TEN', '하루 10개비/번 이상'
 
     class SleepingHabitChoices(models.TextChoices):
         NONE = 'NONE', '잠버릇 없음'
@@ -72,7 +72,7 @@ class Profile(models.Model):
         GRINDING = 'GRINDING', '이갈이'
         TALKING = 'TALKING', '잠꼬대'
 
-    class SleepingHabitTimeChoices(models.TextChoices):
+    class SleepingHabitFreqChoices(models.TextChoices):
         EVERYTIME = 'EVERYTIME', '매번',
         ONLY_WHEN_TIRED = 'ONLY_WHEN_TIRED', '피곤할 때만'
 
@@ -101,6 +101,7 @@ class Profile(models.Model):
         TWELVE_TO_ONE = 'TWELVE_TO_ONE', '12시부터 1시'
         ONE_TO_TWO = 'ONE_TO_TWO', '1시부터 2시'
         AFTER_TWO = 'AFTER_TWO', '2시 이후'
+        FLEXIBLE = 'FLEXIBLE', '유동적'
 
     class CleaningCycleChoices(models.TextChoices):
         EVERYDAY = 'EVERYDAY', '매일'
@@ -117,7 +118,7 @@ class Profile(models.Model):
     smoking_type = models.CharField("흡연 종류", max_length=20, choices=SmokingTypeChoices.choices, blank=True)
     smoking_amount = models.CharField("흡연량", max_length=20, choices=SmokingAmountChoices.choices, blank=True, null=True)
     sleeping_habit = models.CharField("잠버릇 종류", max_length=20, choices=SleepingHabitChoices.choices, blank=True)
-    sleeping_habit_time = models.CharField("잠버릇 빈도", max_length=20, choices=SleepingHabitTimeChoices.choices, blank=True, null=True)
+    sleeping_habit_freq = models.CharField("잠버릇 빈도", max_length=20, choices=SleepingHabitFreqChoices.choices, blank=True, null=True)
     sleeping_habit_extent = models.CharField("잠버릇 강도", max_length=20, choices=SleepingHabitExtentChoices.choices, blank=True, null=True)
     life_style = models.CharField("생활 스타일", max_length=20, choices=LifeStyleChoices.choices, blank=True)
     wake_up_time = models.CharField("기상 시간", max_length=20, choices=WakeUptimeChoices.choices, blank=True)
