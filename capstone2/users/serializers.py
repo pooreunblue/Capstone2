@@ -71,3 +71,6 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         exclude = ('user',)
+
+class DormAcceptImageSerializer(serializers.Serializer):
+    image = serializers.ImageField()
