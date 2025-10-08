@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from users.models import User, DormInfo
+from users.models import User, DormInfo, Profile
+
 
 class UserSignUpSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True, required=True)
@@ -65,3 +66,8 @@ class DormInfoSerializer(serializers.ModelSerializer):
         if data.get('is_accepted') != DormInfo.AcceptanceChoices.ACCEPTED:
             raise serializers.ValidationError({"is_accepted": "기숙사 선발 정보가 확인되지 않습니다."})
         return data
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        exclude = ('user',)
