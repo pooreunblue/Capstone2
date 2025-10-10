@@ -58,7 +58,7 @@ class Profile(models.Model):
         NON_SMOKER = 'NON_SMOKER', '비흡연자'
         CIGARETTE = 'CIGARETTE', '연초'
         HEATED_TOBACCO_PRODUCT = 'HEATED_TOBACCO_PRODUCT', '궐련형 전자담배(릴, 아이코스, 글로 등)'
-        E_CIGARETTE = 'LIQUID_TYPE_E_CIGARETTE', '액상형 전자담배'
+        E_CIGARETTE = 'E_CIGARETTE', '액상형 전자담배'
         ETC = 'ETC', '기타'
         MIXED = 'MIXED', '두 종류 이상 혼합 흡연'
 
