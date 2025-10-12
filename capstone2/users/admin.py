@@ -6,11 +6,11 @@ from users.models import User, DormInfo, Profile
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
+    list_display = ('nickname', 'age', 'is_staff')
+    ordering = ('nickname', )
+
     fieldsets = [
-        (None, {'fields': ('username', 'password')}),
-        ("Personal info", {'fields': ('first_name', 'last_name', 'email', 'phone_number')}),
-        ("Permissions", {'fields': ('is_active', 'is_staff', 'is_superuser',)}),
-        ("Important schedule",{'fields': ('last_login', 'date_joined')}),
+        (None, {"fields": ("nickname", "age", 'is_staff')}),
     ]
 
 @admin.register(DormInfo)
