@@ -1,13 +1,20 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from .managers import CustomUserManager
+
 class User(AbstractUser):
-    phone_number = models.CharField("전화번호", max_length=11, unique=True, null=True, blank=True)
-    email = models.EmailField("이메일", unique=True, blank=True)
-    REQUIRED_FIELDS = ['email']
+    AGE_CHOICES = [(i, f"{i}세") for i in range(20, 101)]
+    username = None
+    nickname = models.CharField('닉네임', max_length=20, unique=True)
+    age = models.IntegerField("나이", choices=AGE_CHOICES, null=True, blank=True)
+    USERNAME_FIELD = 'nickname'
+    REQUIRED_FIELDS = []
+
+    objects = CustomUserManager()
 
     def __str__(self):
-        return self.username
+        return self.nickname
 
 """
 기숙사 지원 인증 정보 저장 모델
@@ -42,15 +49,17 @@ class DormInfo(models.Model):
         NOT_ACCEPTED = 'NOT_ACCEPTED', '미선발'
 
     name = models.CharField("이름", max_length=10)
+    student_id = models.CharField("학번", max_length=20, unique=True)
     sex = models.CharField("성별", max_length=20, choices=SexChoices.choices)
     application_order = models.CharField("신청 차수", max_length=20, choices=ApplicationOrderChoices.choices)
     building = models.CharField("지원 건물", max_length=20, choices=BuildingChoices.choices)
     room = models.CharField("지원 호실", max_length=20, choices=RoomChoices.choices)
     residency_period = models.CharField("거주 기간", max_length=20, choices=ResidencyPeriodChoices.choices)
+    selected_semester = models.CharField("선발 학기", max_length=20, null=True, blank=True)
     is_accepted = models.CharField("합격 여부", max_length=20, choices=AcceptanceChoices.choices)
 
     def __str__(self):
-        return f"{self.user.username}님의 기숙사 지원 정보"
+        return f"{self.user.nickname}님의 기숙사 지원 정보"
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -143,4 +152,4 @@ class Profile(models.Model):
     eating_in_room = models.CharField("실내 취식 여부", max_length=20, choices=EatingInRoomChoices.choices, blank=True)
 
     def __str__(self):
-        return f"{self.user.username}님의 프로필"
+        return f"{self.user.nickname}님의 프로필"
