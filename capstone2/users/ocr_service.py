@@ -9,6 +9,25 @@ API_URL = config('CLOVA_OCR_APIGW_URL')
 SECRET_KEY = config('CLOVA_OCR_SECRET_KEY')
 TEMPLATE_ID = config('CLOVA_OCR_TEMPLATE_ID')
 
+def parse_admission_status(text):
+    """
+    "25-1학기 선발\n(학기)" 와 같은 문자열을 파싱하여 학기와 거주 기간을 분리합니다.
+    """
+    try:
+        parts = text.split('\n')
+        semester_part = parts[0].replace('선발', '').strip()
+        period_part = parts[1]
+
+        if '학기' in period_part:
+            residency_period = 'SEMESTER'
+        elif '6개월' in period_part:
+            residency_period = 'SIXMONTHS'
+        else:
+            residency_period = None
+
+        return semester_part, residency_period
+    except (IndexError, AttributeError):
+        return None, None
 
 def call_clova_ocr(image_file_path):
     """
