@@ -16,8 +16,8 @@ class CustomUserAdmin(UserAdmin):
 @admin.register(DormInfo)
 class DormInfoAdmin(ModelAdmin):
     fieldsets = [
-        (None, {'fields': ('user', 'name', 'sex')}),
-        ("Application info", {'fields': ('application_order', 'building', 'room', 'residency_period', 'is_accepted')}),
+        (None, {'fields': ('user', 'student_id', 'name', 'sex')}),
+        ("Application info", {'fields': ('application_order', 'building', 'room', 'residency_period', 'selected_semester','is_accepted')}),
     ]
 
 @admin.register(Profile)
