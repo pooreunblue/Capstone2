@@ -49,7 +49,7 @@ class DormInfo(models.Model):
         NOT_ACCEPTED = 'NOT_ACCEPTED', '미선발'
 
     name = models.CharField("이름", max_length=10)
-    student_id = models.CharField("학번", max_length=20, unique=True)
+    student_id = models.CharField("학번", max_length=20, unique=True, null=True)
     sex = models.CharField("성별", max_length=20, choices=SexChoices.choices)
     application_order = models.CharField("신청 차수", max_length=20, choices=ApplicationOrderChoices.choices)
     building = models.CharField("지원 건물", max_length=20, choices=BuildingChoices.choices)
