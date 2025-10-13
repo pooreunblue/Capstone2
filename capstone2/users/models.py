@@ -99,19 +99,16 @@ class Profile(models.Model):
         IRREGULAR = 'IRREGULAR', '불규칙적'
 
     class WakeUptimeChoices(models.TextChoices):
-        BEFORE_FIVE = 'BEFORE_FIVE', '5시 이전'
-        FIVE_TO_SIX = 'FIVE_TO_SIX', '5시부터 6시'
-        SIX_TO_SEVEN = 'SIX_TO_SEVEN', '6시부터 7시'
-        SEVEN_TO_EIGHT = 'SEVEN_TO_EIGHT', '7시부터 8시'
-        AFTER_EIGHT = 'AFTER_EIGHT', '8시 이후'
+        BEFORE_SIX = 'BEFORE_SIX', '6시 이전'
+        SIX_TO_EIGHT = 'SIX_TO_EIGHT', '6시부터 8시'
+        EIGHT_TO_TEN = 'EIGHT_TO_TEN', '8시부터 10시'
+        AFTER_TEN = 'AFTER_TEN', '10시 이후'
         FLEXIBLE = 'FLEXIBLE', '유동적'
 
     class BedTimeChoices(models.TextChoices):
         BEFORE_TEN = 'BEFORE_TEN', '10시 이전'
-        TEN_TO_ELEVEN = 'TEN_TO_ELEVEN', '10시부터 11시'
-        ELEVEN_TO_TWELVE = 'ELEVEN_TO_TWELVE', '11시부터 12시'
-        TWELVE_TO_ONE = 'TWELVE_TO_ONE', '12시부터 1시'
-        ONE_TO_TWO = 'ONE_TO_TWO', '1시부터 2시'
+        TEN_TO_TWELVE = 'TEN_TO_TWELVE', '10시부터 12시'
+        TWELVE_TO_TWO = 'TWELVE_TO_TWO', '12시부터 2시'
         AFTER_TWO = 'AFTER_TWO', '2시 이후'
         FLEXIBLE = 'FLEXIBLE', '유동적'
 
@@ -130,7 +127,6 @@ class Profile(models.Model):
         EVERYDAY = 'EVERYDAY', '매일'
         TWICE_A_WEEK = 'TWICE_A_WEEK', '한 주에 두 번'
         ONCE_A_WEEK = 'ONCE_A_WEEK', '한 주에 한 번'
-        ONCE_IN_A_WHILE = 'ONCE_IN_A_WHILE', '가끔씩'
         RARELY = 'RARELY', '거의 하지 않음'
 
     class EatingInRoomChoices(models.TextChoices):
