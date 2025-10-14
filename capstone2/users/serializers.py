@@ -42,20 +42,19 @@ class DormVerificationSerializer(serializers.Serializer):
         if selected_semester != current_semester:
             raise serializers.ValidationError("현재 학기 합격자 조회결과가 아닙니다.")
 
-        if is_accepted != "선발":
+        if is_accepted_text != "선발":
             raise serializers.ValidationError("기숙사 선발 대상자가 아닙니다.")
 
         sex_enum = "MALE" if sex_text == "남자" else "FEMALE"
-        building_enum = None
-        if "명덕관" in building_text:
+        if building_text == "명덕관":
             building_enum = "MYEONGDEOK"
-        elif "명현관" in building_text:
+        elif building_text == "명현관":
             building_enum = "MYEONGHYEON"
-        elif "3동" in building_text:
+        elif building_text == "3동":
             building_enum = "DONG_3"
-        elif "4동" in building_text:
+        elif building_text == "4동":
             building_enum = "DONG_4"
-        elif "5동" in building_text:
+        elif building_text == "5동":
             building_enum = "DONG_5"
         else:
             raise serializers.ValidationError(f"지원 건물을 인식할 수 없습니다: {building_text}")
@@ -68,11 +67,11 @@ class DormVerificationSerializer(serializers.Serializer):
 
         male_restricted = ['MYEONGHYEON', 'DONG_4', 'DONG_5']
         if sex_enum == "MALE" and building_enum in male_restricted:
-            raise serializers.ValidationError("남학생은" + building + "에 배정될 수 없습니다.")
+            raise serializers.ValidationError("남학생은" + building_text + "에 배정될 수 없습니다.")
 
         validated_dorm_data = {
             "student_id": student_id,
-            "semester": selected_semester,
+            "selected_semester": selected_semester,
             "name": name,
             "sex": sex_enum,
             "building": building_enum,
