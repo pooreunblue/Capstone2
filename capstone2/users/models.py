@@ -4,10 +4,9 @@ from django.db import models
 from .managers import CustomUserManager
 
 class User(AbstractUser):
-    AGE_CHOICES = [(i, f"{i}세") for i in range(20, 101)]
     username = None
     nickname = models.CharField('닉네임', max_length=20, unique=True)
-    age = models.IntegerField("나이", choices=AGE_CHOICES, null=True, blank=True)
+    application_order = models.CharField('신청 차수', max_length=10, blank=True, null=True)
     USERNAME_FIELD = 'nickname'
     REQUIRED_FIELDS = []
 
@@ -24,10 +23,6 @@ class DormInfo(models.Model):
     class SexChoices(models.TextChoices):
         MALE = 'MALE', '남자'
         FEMALE = 'FEMALE', '여자'
-
-    class ApplicationOrderChoices(models.TextChoices):
-        FIRST = 'FIRST', '1차'
-        SECOND = 'SECOND', '2차'
 
     class BuildingChoices(models.TextChoices):
         MYEONGDEOK = 'MYEONGDEOK', '명덕관'
@@ -51,7 +46,6 @@ class DormInfo(models.Model):
     name = models.CharField("이름", max_length=10)
     student_id = models.CharField("학번", max_length=20, unique=True, null=True)
     sex = models.CharField("성별", max_length=20, choices=SexChoices.choices)
-    application_order = models.CharField("신청 차수", max_length=20, choices=ApplicationOrderChoices.choices)
     building = models.CharField("지원 건물", max_length=20, choices=BuildingChoices.choices)
     room = models.CharField("지원 호실", max_length=20, choices=RoomChoices.choices)
     residency_period = models.CharField("거주 기간", max_length=20, choices=ResidencyPeriodChoices.choices)
@@ -63,6 +57,14 @@ class DormInfo(models.Model):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    AGE_CHOICES = [(i, f"{i}세") for i in range(20, 101)]
+
+    class GradeChoices(models.TextChoices):
+        FRESHMAN = 'FRESHMAN', '1학년'
+        SOPHOMORE = 'SOPHOMORE', '2학년'
+        JUNIOR = 'JUNIOR', '3학년'
+        SENIOR = 'SENIOR', '4학년'
+
     class SmokingTypeChoices(models.TextChoices):
         NON_SMOKER = 'NON_SMOKER', '비흡연자'
         CIGARETTE = 'CIGARETTE', '연초'
@@ -134,6 +136,8 @@ class Profile(models.Model):
         SOMETIMES = 'SOMETIMES', '가끔 하는 편'
         OFTEN = 'OFTEN', '자주 하는 편'
 
+    age = models.CharField("나이", max_length=10, choices=AGE_CHOICES, blank=True, null=True)
+    grade = models.CharField("학년", max_length=20, choices=GradeChoices.choices, blank=True, null=True)
     smoking_type = models.CharField("흡연 종류", max_length=25, choices=SmokingTypeChoices.choices, blank=True)
     smoking_amount = models.CharField("흡연량", max_length=20, choices=SmokingAmountChoices.choices, blank=True, null=True)
     sleeping_habit = models.CharField("잠버릇 종류", max_length=20, choices=SleepingHabitChoices.choices, blank=True)
