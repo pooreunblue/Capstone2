@@ -52,6 +52,7 @@ def call_clova_ocr(image_file_path):
             if field_name:
                 parsed_data[field_name] = field_text.strip()
 
+        parsed_data['dormitory_name'] = parsed_data.get('dormitory_name').split('(')[0]
         admission_status_text = parsed_data.get('admission_status')
         if admission_status_text:
             parts = admission_status_text.split('\n')
