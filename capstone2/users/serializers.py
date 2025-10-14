@@ -9,10 +9,6 @@ from users.ocr_service import call_clova_ocr
 class DormVerificationSerializer(serializers.Serializer):
     image = serializers.ImageField(required=True)
 
-    class Meta:
-        model = DormInfo
-        fields = ['name', 'student_id','sex', 'application_order', 'building', 'room', 'residency_period', 'selected_semester', 'is_accepted']
-
     def validate(self, data):
         image_file = data['image']
 
@@ -30,36 +26,64 @@ class DormVerificationSerializer(serializers.Serializer):
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
 
-        sex = data.get('sex')
-        student_id = data.get('student_id')
-        building = data.get('building')
-        selected_semester = data.get('selected_semester')
-        is_accepted = data.get('is_accepted')
-        current_semester = "2025-2학기"
-
-        if sex == DormInfo.SexChoices.FEMALE and building == DormInfo.BuildingChoices.DONG_3:
-            raise serializers.ValidationError("여학생은 3동에 배정될 수 없습니다.")
-
-        male_restricted = ['MYEONGHYEON', 'DONG_4', 'DONG_5']
-        if sex == DormInfo.SexChoices.MALE and building in male_restricted:
-            raise serializers.ValidationError("남학생은" + building + "에 배정될 수 없습니다.")
+        name = ocr_data.get("name")
+        student_id = ocr_data.get('student_id')
+        selected_semester = ocr_data.get('selected_semester')
+        is_accepted_text = ocr_data.get('is_accepted')
+        sex_text = ocr_data.get('gender')
+        building_text = ocr_data.get('dormitory_name', "")
+        room_text = ocr_data.get('room_type', "")
+        period_text = ocr_data.get('residency_period')
+        current_semester = "25-2학기"
 
         if not student_id or DormInfo.objects.filter(student_id=student_id).exists():
             raise serializers.ValidationError("이미 가입된 학번이거나, 학번을 인식할 수 없습니다.")
 
-        if selected_semester != self.current_semester:
-            raise serializers.ValidationError("현재 학기 합자 조회결과 입니다.")
+        if selected_semester != current_semester:
+            raise serializers.ValidationError("현재 학기 합격자 조회결과가 아닙니다.")
 
-        if data.get('is_accepted') != DormInfo.AcceptanceChoices.ACCEPTED:
+        if is_accepted != "선발":
             raise serializers.ValidationError("기숙사 선발 대상자가 아닙니다.")
+
+        sex_enum = "MALE" if sex_text == "남자" else "FEMALE"
+        building_enum = None
+        if "명덕관" in building_text:
+            building_enum = "MYEONGDEOK"
+        elif "명현관" in building_text:
+            building_enum = "MYEONGHYEON"
+        elif "3동" in building_text:
+            building_enum = "DONG_3"
+        elif "4동" in building_text:
+            building_enum = "DONG_4"
+        elif "5동" in building_text:
+            building_enum = "DONG_5"
+        else:
+            raise serializers.ValidationError(f"지원 건물을 인식할 수 없습니다: {building_text}")
+        accepted_enum = "ACCEPTED" if is_accepted_text == "선발" else "NOT_ACCEPTED"
+        room_enum = "QUAD" if room_text == "4인실" else "DOUBLE"
+        period_enum = "SEMESTER" if period_text == "학기" else "SIXMONTHS"
+
+        if sex_enum == "FEMALE" and building_enum == "DONG_3":
+            raise serializers.ValidationError("여학생은 3동에 배정될 수 없습니다.")
+
+        male_restricted = ['MYEONGHYEON', 'DONG_4', 'DONG_5']
+        if sex_enum == "MALE" and building_enum in male_restricted:
+            raise serializers.ValidationError("남학생은" + building + "에 배정될 수 없습니다.")
+
+        validated_dorm_data = {
+            "student_id": student_id,
+            "semester": selected_semester,
+            "name": name,
+            "sex": sex_enum,
+            "building": building_enum,
+            "is_accepted": accepted_enum,
+            "room": room_enum,
+            "residency_period": period_enum,
+        }
+        data['validated_dorm_data'] = validated_dorm_data
         return data
 
-
 class SignUpSerializer(serializers.Serializer):
-    """
-    2단계: 임시 인증 토큰과 닉네임, 나이를 받아 최종 가입을 처리하는 Serializer.
-    """
-    # 안드로이드 앱으로부터 받을 데이터 필드를 정의합니다.
     verification_token = serializers.CharField(required=True)
     nickname = serializers.CharField(
         required=True,
@@ -70,23 +94,17 @@ class SignUpSerializer(serializers.Serializer):
             )
         ]
     )
-    age = serializers.IntegerField(required=False, allow_null=True)
+    application_order = serializers.CharField(required=False, allow_null=True)
 
     def create(self, validated_data):
-        # View에서 전달받은 OCR 데이터를 사용하여 User와 DormInfo를 생성합니다.
         dorm_data = validated_data.pop('dorm_data')
-
-        # User 객체 생성
         user = User.objects.create(
             nickname=validated_data['nickname'],
-            age=validated_data.get('age')
+            application_order=validated_data.get('application_order'),
         )
         user.set_unusable_password()
         user.save()
-
-        # DormInfo 객체 생성 및 User와 연결
         DormInfo.objects.create(user=user, **dorm_data)
-
         return user
 
 
