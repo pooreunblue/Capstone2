@@ -3,6 +3,7 @@ import json
 import uuid
 import time
 import os
+import re
 from decouple import config
 
 API_URL = config('CLOVA_OCR_APIGW_URL')
