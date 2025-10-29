@@ -44,18 +44,15 @@ class DormVerificationSerializer(serializers.Serializer):
             raise serializers.ValidationError({"image":"기숙사 선발 대상자가 아닙니다."})
 
         sex_enum = "MALE" if sex_text == "남자" else "FEMALE"
-        if building_text == "명덕관":
-            building_enum = "MYEONGDEOK"
-        elif building_text == "명현관":
-            building_enum = "MYEONGHYEON"
-        elif building_text == "3동":
-            building_enum = "DONG_3"
-        elif building_text == "4동":
-            building_enum = "DONG_4"
-        elif building_text == "5동":
-            building_enum = "DONG_5"
-        else:
-            raise serializers.ValidationError({"image":"지원 건물을 인식할 수 없습니다."})
+        building_enum = None
+        building_map = {"명덕관": "MYEONGDEOK", "명현관": "MYEONGHYEON", "3동": "DONG_3", "4동": "DONG_4", "5동": "DONG_5"}
+        for key, value in building_map.items():
+            if key in building_text:
+                building_enum = value
+                break
+        if not building_enum:
+            raise serializers.ValidationError(f"지원 건물을 인식할 수 없습니다: {building_text}")
+
         accepted_enum = "ACCEPTED" if is_accepted_text == "선발" else "NOT_ACCEPTED"
         room_enum = "QUAD" if room_text == "4인실" else "DOUBLE"
         period_enum = "SEMESTER" if period_text == "학기" else "SIXMONTHS"
@@ -77,11 +74,9 @@ class DormVerificationSerializer(serializers.Serializer):
             "room": room_enum,
             "residency_period": period_enum,
         }
-        data['validated_dorm_data'] = validated_dorm_data
-        return data
+        return validated_dorm_data
 
 class SignUpSerializer(serializers.Serializer):
-    verification_token = serializers.CharField(required=True)
     nickname = serializers.CharField(
         required=True,
         validators=[
@@ -92,18 +87,17 @@ class SignUpSerializer(serializers.Serializer):
         ]
     )
     application_order = serializers.CharField(required=False, allow_null=True)
+    dorm_data = serializers.DictField(write_only=True, required=True)
 
     def create(self, validated_data):
         dorm_data = validated_data.pop('dorm_data')
-        user = User.objects.create(
+        user = User.objects.create_user(
             nickname=validated_data['nickname'],
             application_order=validated_data.get('application_order'),
+            password=None,
         )
-        user.set_unusable_password()
-        user.save()
         DormInfo.objects.create(user=user, **dorm_data)
         return user
-
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
