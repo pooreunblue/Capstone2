@@ -1,69 +1,111 @@
+import re
 import os
+import json
 import uuid
-
 from rest_framework import serializers
+from django.core.files.storage import default_storage
+from django.conf import settings
 from rest_framework.validators import UniqueValidator
+
 from users.models import User, DormInfo, Profile
 from users.ocr_service import call_clova_ocr
 
+
 class DormVerificationSerializer(serializers.Serializer):
-    image = serializers.ImageField(required=True)
+    image = serializers.ImageField()
 
     def validate(self, data):
-        image_file = data['image']
-        temp_file_path = f'temp_{uuid.uuid4()}.jpg'
-        with open(temp_file_path, 'wb+') as temp_file:
-            for chunk in image_file.chunks():
-                temp_file.write(chunk)
+        image = data.get('image')
+
+        # 임시 파일 저장
+        temp_file_name = f"ocr_temp_{uuid.uuid4()}.{image.name.split('.')[-1]}"
+        temp_file_path = os.path.join(settings.MEDIA_ROOT, temp_file_name)
+
         try:
-            ocr_result = call_clova_ocr(temp_file_path)
+            path = default_storage.save(temp_file_path, image)
+            full_temp_path = os.path.join(settings.MEDIA_ROOT, path)
+
+            # OCR API 호출 (수정된 ocr_service 사용)
+            ocr_result = call_clova_ocr(full_temp_path)
+
             if not ocr_result.get("success"):
-                raise serializers.ValidationError({"image": f"OCR 처리 중 오류: {ocr_result.get('error')}"})
-            ocr_data = ocr_result.get("data", {})
+                raise serializers.ValidationError(f"OCR API 실패: {ocr_result.get('error')}")
+
+            ocr_data = ocr_result.get("data")  # ocr_data는 리스트입니다.
+
         finally:
-            if os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
+            # 임시 파일 삭제 (기존 로직과 동일)
+            if os.path.exists(full_temp_path):
+                os.remove(full_temp_path)
 
-        name = ocr_data.get("name")
-        student_id = ocr_data.get('student_id')
-        selected_semester = ocr_data.get('selected_semester')
-        is_accepted_text = ocr_data.get('is_accepted')
-        sex_text = ocr_data.get('gender')
-        building_text = ocr_data.get('dormitory_name', "")
-        room_text = ocr_data.get('room_type', "")
-        period_text = ocr_data.get('residency_period')
-        current_semester = "25-1학기"
+        print("\n--- OCR 추출 결과 (리스트 형태) ---")
+        print(json.dumps(ocr_data, indent=4, ensure_ascii=False))
+        print("---------------------------\n")
 
-        if not student_id or DormInfo.objects.filter(student_id=student_id).exists():
-            raise serializers.ValidationError({"image":"이미 가입된 학번이거나, 학번을 인식할 수 없습니다."})
+        # 데이터 추출 및 파싱 (리스트 처리)
+        if not ocr_data or not isinstance(ocr_data, list) or len(ocr_data) == 0:
+            raise serializers.ValidationError("OCR 데이터가 비어있거나 형식이 잘못되었습니다.")
 
-        if selected_semester != current_semester:
-            raise serializers.ValidationError({"image":"현재 학기 합격자 조회 결과가 아닙니다."})
+        data_dict = ocr_data[0]  # 리스트의 첫 번째 딕셔너리 추출
 
+        # ]새로운 한글 키로 Raw 텍스트 추출
+        name = data_dict.get("이름")
+        student_id = data_dict.get('학번')
+        is_accepted_raw_text = data_dict.get('합격여부', "")  # '합격여부' 전체 텍스트
+        sex_text = data_dict.get('성별', "")
+        building_text = data_dict.get('지원건물', "")
+        room_text = data_dict.get('지원호실구분', "")
+
+        if not name or not student_id:
+            raise serializers.ValidationError("OCR 인식 실패: 이름 또는 학번을 찾을 수 없습니다.")
+
+        # 정규식 파싱
+        selected_semester = None
+        semester_match = re.search(r'(\d{2}-\d학기)', is_accepted_raw_text)
+        if semester_match:
+            selected_semester = semester_match.group(1)
+
+        is_accepted_text = "선발" if "선발" in is_accepted_raw_text else "미선발"
+
+        period_text = ""
+        period_match = re.search(r'\((학기|6개월)\)', is_accepted_raw_text)
+        if period_match:
+            period_text = period_match.group(1)
+
+        # 선발 여부 확인
         if is_accepted_text != "선발":
-            raise serializers.ValidationError({"image":"기숙사 선발 대상자가 아닙니다."})
+            raise serializers.ValidationError({"image": "기숙사 선발 대상자가 아닙니다."})
 
+        # Enum 변환
         sex_enum = "MALE" if sex_text == "남자" else "FEMALE"
+
         building_enum = None
         building_map = {"명덕관": "MYEONGDEOK", "명현관": "MYEONGHYEON", "3동": "DONG_3", "4동": "DONG_4", "5동": "DONG_5"}
+
+        # '지원건물' 텍스트에서 괄호 제거 후 매핑 (혹은 'in'으로 확인)
+        building_name_cleaned = building_text.split('(')[0].strip()
+
         for key, value in building_map.items():
-            if key in building_text:
+            if key in building_name_cleaned:
                 building_enum = value
                 break
+
         if not building_enum:
             raise serializers.ValidationError(f"지원 건물을 인식할 수 없습니다: {building_text}")
 
-        accepted_enum = "ACCEPTED" if is_accepted_text == "선발" else "NOT_ACCEPTED"
+        accepted_enum = "ACCEPTED"  # 이미 위에서 "선발"인지 검증했으므로
         room_enum = "QUAD" if room_text == "4인실" else "DOUBLE"
         period_enum = "SEMESTER" if period_text == "학기" else "SIXMONTHS"
 
+        # 성별/건물 유효성 검사
         if sex_enum == "FEMALE" and building_enum == "DONG_3":
-            raise serializers.ValidationError({"image":"여학생은 3동에 배정될 수 없습니다."})
+            raise serializers.ValidationError({"image": "여학생은 3동에 배정될 수 없습니다."})
 
         male_restricted = ['MYEONGHYEON', 'DONG_4', 'DONG_5']
         if sex_enum == "MALE" and building_enum in male_restricted:
-            raise serializers.ValidationError({"image":"남학생은 해당 건물에 배정될 수 없습니다."})
+            raise serializers.ValidationError({"image": "남학생은 해당 건물에 배정될 수 없습니다."})
 
+        # 최종 데이터 반환
         validated_dorm_data = {
             "student_id": student_id,
             "selected_semester": selected_semester,
@@ -74,6 +116,7 @@ class DormVerificationSerializer(serializers.Serializer):
             "room": room_enum,
             "residency_period": period_enum,
         }
+
         return validated_dorm_data
 
 class SignUpSerializer(serializers.Serializer):
