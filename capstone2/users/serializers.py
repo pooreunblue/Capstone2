@@ -31,33 +31,35 @@ class DormVerificationSerializer(serializers.Serializer):
             if not ocr_result.get("success"):
                 raise serializers.ValidationError(f"OCR API 실패: {ocr_result.get('error')}")
 
-            ocr_data = ocr_result.get("data")  # ocr_data는 리스트입니다.
+            ocr_data = ocr_result.get("data")  # ocr_data는 딕셔너리.
 
         finally:
             # 임시 파일 삭제 (기존 로직과 동일)
             if os.path.exists(full_temp_path):
                 os.remove(full_temp_path)
 
-        print("\n--- OCR 추출 결과 (리스트 형태) ---")
+        print("\n--- OCR 추출 결과 (딕셔너리 형태) ---")
         print(json.dumps(ocr_data, indent=4, ensure_ascii=False))
         print("---------------------------\n")
 
-        # 데이터 추출 및 파싱 (리스트 처리)
-        if not ocr_data or not isinstance(ocr_data, list) or len(ocr_data) == 0:
-            raise serializers.ValidationError("OCR 데이터가 비어있거나 형식이 잘못되었습니다.")
+        # 새로운 한글 키로 Raw 텍스트 추출
+        name = ocr_data.get("이름")
+        student_id = ocr_data.get('학번')
+        is_accepted_raw_text = ocr_data.get('합격여부', "")  # '합격여부' 전체 텍스트
+        sex_text = ocr_data.get('성별', "")
+        building_text = ocr_data.get('지원건물', "")
+        room_text = ocr_data.get('지원호실구분', "")
 
-        data_dict = ocr_data[0]  # 리스트의 첫 번째 딕셔너리 추출
+        print(f"\n[DEBUG 1] 1차 검증: student_id '{student_id}' (타입: {type(student_id)})로 중복 검사 시작...")
 
-        # ]새로운 한글 키로 Raw 텍스트 추출
-        name = data_dict.get("이름")
-        student_id = data_dict.get('학번')
-        is_accepted_raw_text = data_dict.get('합격여부', "")  # '합격여부' 전체 텍스트
-        sex_text = data_dict.get('성별', "")
-        building_text = data_dict.get('지원건물', "")
-        room_text = data_dict.get('지원호실구분', "")
+        if not student_id or DormInfo.objects.filter(student_id=student_id).exists():
+            print(f"[DEBUG 1] 중복 발견 또는 학번 없음!")
+            raise serializers.ValidationError({"image": "이미 가입된 학번이거나, 학번을 인식할 수 없습니다."})
 
-        if not name or not student_id:
-            raise serializers.ValidationError("OCR 인식 실패: 이름 또는 학번을 찾을 수 없습니다.")
+        print(f"[DEBUG 1] 중복 없음. 다음 단계 진행.")
+
+        if not name:
+            raise serializers.ValidationError("OCR 인식 실패: 이름을 찾을 수 없습니다.")
 
         # 정규식 파싱
         selected_semester = None
@@ -116,6 +118,7 @@ class DormVerificationSerializer(serializers.Serializer):
             "room": room_enum,
             "residency_period": period_enum,
         }
+        print(f"[DEBUG 2] 최종 저장될 데이터: {validated_dorm_data}\n")
 
         return validated_dorm_data
 
@@ -143,6 +146,13 @@ class SignUpSerializer(serializers.Serializer):
         return user
 
 class ProfileSerializer(serializers.ModelSerializer):
+    student_id = serializers.IntegerField(source='user.id', read_only=True)
     class Meta:
         model = Profile
-        exclude = ('user',)
+        fields = [
+            'student_id', 'age', 'grade', 'smoking_type', 'smoking_amount',
+            'sleeping_habit', 'sleeping_habit_freq', 'sleeping_habit_extent',
+            'life_style', 'wake_up_time', 'bed_time', 'pre_sleeping_life_style',
+            'sensitivity_to_sleep', 'cleaning_cycle', 'eating_in_room'
+        ]
+        read_only_fields = ['student_id']
