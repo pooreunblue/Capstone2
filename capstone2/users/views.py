@@ -119,8 +119,6 @@ class MatchingFeedView(APIView):
             # AI 서버가 비정상적인 응답을 준 경우 (예: "ok": false)
             return Response({"detail": f"매칭 결과를 처리하는 중 오류가 발생했습니다: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # 백엔드 최종 결과 조합
-
         # 1차 필터링했던 후보자 리스트(candidates_pool)를 딕셔너리로 변환 (빠른 검색용)
         users_map = {user.id: user for user in candidates_pool}
 
@@ -133,3 +131,10 @@ class MatchingFeedView(APIView):
             many=True
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class UserProfileDetailView(generics.RetrieveAPIView):
+    permission_classes = [AllowAny]
+
+    queryset = Profile.objects.select_related('user').all()
+    serializer_class = ProfileSerializer
+    lookup_field = 'user_id'
