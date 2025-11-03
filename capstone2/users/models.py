@@ -5,8 +5,11 @@ from .managers import CustomUserManager
 
 class User(AbstractUser):
     username = None
+    class OrderChoices(models.TextChoices):
+        FIRST = 'FIRST', '25-1학기'
+        SECOND = 'SECOND', '25-2학기'
     nickname = models.CharField('닉네임', max_length=20, unique=True)
-    application_order = models.CharField('신청 차수', max_length=10, blank=True, null=True)
+    application_order = models.CharField('신청 차수', max_length=10, choices=OrderChoices.choices, blank=True, null=True)
     USERNAME_FIELD = 'nickname'
     REQUIRED_FIELDS = []
 
@@ -64,6 +67,7 @@ class Profile(models.Model):
         SOPHOMORE = 'SOPHOMORE', '2학년'
         JUNIOR = 'JUNIOR', '3학년'
         SENIOR = 'SENIOR', '4학년'
+        FIFTH_YEAR = 'FIFTH_TEAR', '5학년'
 
     class SmokingTypeChoices(models.TextChoices):
         NON_SMOKER = 'NON_SMOKER', '비흡연자'
