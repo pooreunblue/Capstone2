@@ -10,6 +10,41 @@ from rest_framework.validators import UniqueValidator
 from users.models import User, DormInfo, Profile
 from users.ocr_service import call_clova_ocr
 
+# (쓰기용) 한글 -> 코드
+PROFILE_REVERSE_MAPS = {
+    'grade': {label: code for code, label in Profile.GradeChoices.choices},
+    'smoking_type': {label: code for code, label in Profile.SmokingTypeChoices.choices},
+    'smoking_amount': {label: code for code, label in Profile.SmokingAmountChoices.choices},
+    'sleeping_habit': {label: code for code, label in Profile.SleepingHabitChoices.choices},
+    'sleeping_habit_freq': {label: code for code, label in Profile.SleepingHabitFreqChoices.choices},
+    'sleeping_habit_extent': {label: code for code, label in Profile.SleepingHabitExtentChoices.choices},
+    'life_style': {label: code for code, label in Profile.LifeStyleChoices.choices},
+    'wake_up_time': {label: code for code, label in Profile.WakeUptimeChoices.choices},
+    'bed_time': {label: code for code, label in Profile.BedTimeChoices.choices},
+    'pre_sleeping_life_style': {label: code for code, label in Profile.PreSleepingLifeStyleChoices.choices},
+    'sensitivity_to_sleep': {label: code for code, label in Profile.SensitivityToSleep.choices},
+    'cleaning_cycle': {label: code for code, label in Profile.CleaningCycleChoices.choices},
+    'eating_in_room': {label: code for code, label in Profile.EatingInRoomChoices.choices},
+    # 'age'는 TextChoices가 아니므로 제외
+}
+
+# (읽기용) 코드 -> 한글
+PROFILE_DISPLAY_MAPS = {
+    'grade': dict(Profile.GradeChoices.choices),
+    'smoking_type': dict(Profile.SmokingTypeChoices.choices),
+    'smoking_amount': dict(Profile.SmokingAmountChoices.choices),
+    'sleeping_habit': dict(Profile.SleepingHabitChoices.choices),
+    'sleeping_habit_freq': dict(Profile.SleepingHabitFreqChoices.choices),
+    'sleeping_habit_extent': dict(Profile.SleepingHabitExtentChoices.choices),
+    'life_style': dict(Profile.LifeStyleChoices.choices),
+    'wake_up_time': dict(Profile.WakeUptimeChoices.choices),
+    'bed_time': dict(Profile.BedTimeChoices.choices),
+    'pre_sleeping_life_style': dict(Profile.PreSleepingLifeStyleChoices.choices),
+    'sensitivity_to_sleep': dict(Profile.SensitivityToSleep.choices),
+    'cleaning_cycle': dict(Profile.CleaningCycleChoices.choices),
+    'eating_in_room': dict(Profile.EatingInRoomChoices.choices),
+    'age': dict(Profile.AGE_CHOICES),
+}
 
 class DormVerificationSerializer(serializers.Serializer):
     image = serializers.ImageField()
@@ -147,8 +182,10 @@ class SignUpSerializer(serializers.Serializer):
 
 class ProfileSerializer(serializers.ModelSerializer):
     student_id = serializers.IntegerField(source='user.id', read_only=True)
+
     class Meta:
         model = Profile
+        # DB에 저장된 모든 필드명을 그대로 사용
         fields = [
             'student_id', 'age', 'grade', 'smoking_type', 'smoking_amount',
             'sleeping_habit', 'sleeping_habit_freq', 'sleeping_habit_extent',
@@ -156,3 +193,144 @@ class ProfileSerializer(serializers.ModelSerializer):
             'sensitivity_to_sleep', 'cleaning_cycle', 'eating_in_room'
         ]
         read_only_fields = ['student_id']
+
+    def to_internal_value(self, data):
+        """
+        [쓰기/수정] 클라이언트(앱)가 보낸 '한글' 데이터를 '코드'로 번역
+        e.g., {"grade": "1학년"} -> {"grade": "FRESHMAN"}
+        """
+        # (age는 '20세' -> '20'으로 변환)
+        if 'age' in data and data['age']:
+            # '세' 글자 제거
+            data['age'] = str(data['age']).replace('세', '')
+
+        # '번역 맵'을 순회하며 한글 -> 코드로 변환
+        for field_name, reverse_map in PROFILE_REVERSE_MAPS.items():
+            if field_name in data and data[field_name]:
+                korean_value = data[field_name]
+                code_value = reverse_map.get(korean_value)
+
+                if code_value is None:
+                    # 만약 앱이 "1학년1" 같은 잘못된 값을 보내면
+                    raise serializers.ValidationError(
+                        {field_name: f"'{korean_value}'는 유효한 선택지가 아닙니다."}
+                    )
+                data[field_name] = code_value  # '1학년'을 'FRESHMAN'으로 교체
+
+        # 번역된 data를 ModelSerializer의 원래 검증 로직으로 넘김
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        """
+        [읽기/조회] DB의 '코드' 데이터를 '한글'로 번역
+        e.g., instance.grade ("FRESHMAN") -> "1학년"
+        """
+        # 1. 일단 ModelSerializer의 기본 로직으로 직렬화 (e.g., {"grade": "FRESHMAN"})
+        data = super().to_representation(instance)
+
+        # 2. '번역 맵'을 순회하며 코드 -> 한글로 교체
+        for field_name, display_map in PROFILE_DISPLAY_MAPS.items():
+            if field_name in data and data[field_name]:
+                code_value = data[field_name]
+                korean_value = display_map.get(code_value)
+                if korean_value:
+                    data[field_name] = korean_value  # 'FRESHMAN'을 '1학년'으로 교체
+
+        return data
+
+class MatchingSummarySerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    nickname = serializers.CharField(source='user.nickname', read_only=True)
+    grade = serializers.CharField(source='get_grade_display', read_only=True)
+    smoking_type = serializers.CharField(source='get_smoking_type_display', read_only=True)
+    sleeping_habit = serializers.CharField(source='get_sleeping_habit_display', read_only=True)
+    life_style = serializers.CharField(source='get_life_style_display', read_only=True)
+    cleaning_cycle = serializers.CharField(source='get_cleaning_cycle_display', read_only=True)
+    class Meta:
+        model = Profile
+        fields = [
+            'user_id', 'nickname', 'age', 'grade', 'smoking_type',
+            'sleeping_habit', 'life_style', 'wake_up_time', 'cleaning_cycle'
+        ]
+        read_only_fields = fields
+
+class PublicProfileSerializer(serializers.ModelSerializer):
+    nickname = serializers.CharField(source='user.nickname', read_only=True)
+
+    age = serializers.CharField(source='get_age_display', read_only=True)
+    grade_display = serializers.CharField(source='get_grade_display', read_only=True)
+    smoking_type_display = serializers.CharField(source='get_smoking_type_display', read_only=True)
+    smoking_amount_display = serializers.CharField(source='get_smoking_amount_display', read_only=True)
+    sleeping_habit_display = serializers.CharField(source='get_sleeping_habit_display', read_only=True)
+    sleeping_habit_freq_display = serializers.CharField(source='get_sleeping_habit_freq_display', read_only=True)
+    sleeping_habit_extent_display = serializers.CharField(source='get_sleeping_habit_extent_display', read_only=True)
+    life_style_display = serializers.CharField(source='get_life_style_display', read_only=True)
+    wake_up_time_display = serializers.CharField(source='get_wake_up_time_display', read_only=True)
+    bed_time_display = serializers.CharField(source='get_bed_time_display', read_only=True)
+    pre_sleeping_life_style_display = serializers.CharField(source='get_pre_sleeping_life_style_display', read_only=True)
+    sensitivity_to_sleep_display = serializers.CharField(source='get_sensitivity_to_sleep_display', read_only=True)
+    cleaning_cycle_display = serializers.CharField(source='get_cleaning_cycle_display', read_only=True)
+    eating_in_room_display = serializers.CharField(source='get_eating_in_room_display', read_only=True)
+
+    class Meta:
+        model = Profile
+        fields = [
+            'nickname', 'age',
+            'grade_display', 'smoking_type_display', 'smoking_amount_display', 'sleeping_habit_display',
+            'sleeping_habit_freq_display', 'sleeping_habit_extent_display',
+            'life_style_display', 'wake_up_time_display', 'bed_time_display',
+            'pre_sleeping_life_style_display', 'sensitivity_to_sleep_display',
+            'cleaning_cycle_display', 'eating_in_room_display'
+        ]
+        read_only_fields = fields
+
+class MyUserSerializer(serializers.ModelSerializer):
+    application_order_display = serializers.CharField(source='get_application_order_display', read_only=False)
+
+    class Meta:
+        model = User
+        fields = ['nickname', 'application_order_display']
+        read_only_fields = fields
+
+class MyDormInfoSerializer(serializers.ModelSerializer):
+    sex = serializers.CharField(source='get_sex_display', read_only=True)
+    building = serializers.CharField(source='get_building_display', read_only=True)
+    room = serializers.CharField(source='get_room_display', read_only=True)
+    residency_period = serializers.CharField(source='get_residency_period_display', read_only=True)
+    is_accepted = serializers.CharField(source='get_is_accepted_display', read_only=True)
+
+    class Meta:
+        model = DormInfo
+        fields = [
+            'name', 'student_id', 'sex', 'building', 'room',
+            'residency_period', 'selected_semester', 'is_accepted'
+        ]
+        read_only_fields = fields
+
+class MyProfileSerializer(serializers.ModelSerializer):
+    # --- GET 요청 시 보여줄 한글 표시 필드 (읽기 전용) ---
+    age = serializers.CharField(source='get_age_display')
+    grade = serializers.CharField(source='get_grade_display', read_only=True)
+    smoking_type = serializers.CharField(source='get_smoking_type_display', read_only=True)
+    smoking_amount = serializers.CharField(source='get_smoking_amount_display', read_only=True)
+    sleeping_habit = serializers.CharField(source='get_sleeping_habit_display', read_only=True)
+    sleeping_habit_freq = serializers.CharField(source='get_sleeping_habit_freq_display', read_only=True)
+    sleeping_habit_extent = serializers.CharField(source='get_sleeping_habit_extent_display', read_only=True)
+    life_style = serializers.CharField(source='get_life_style_display', read_only=True)
+    wake_up_time = serializers.CharField(source='get_wake_up_time_display', read_only=True)
+    bed_time = serializers.CharField(source='get_bed_time_display', read_only=True)
+    pre_sleeping_life_style = serializers.CharField(source='get_pre_sleeping_life_style_display', read_only=True)
+    sensitivity_to_sleep = serializers.CharField(source='get_sensitivity_to_sleep_display', read_only=True)
+    cleaning_cycle = serializers.CharField(source='get_cleaning_cycle_display', read_only=True)
+    eating_in_room = serializers.CharField(source='get_eating_in_room_display', read_only=True)
+
+    class Meta:
+        model = Profile
+        # '내' 정보이므로 모든 필드를 한글로 포함
+        fields = [
+            'age', 'grade', 'smoking_type', 'smoking_amount',
+            'sleeping_habit', 'sleeping_habit_freq', 'sleeping_habit_extent',
+            'life_style', 'wake_up_time', 'bed_time', 'pre_sleeping_life_style',
+            'sensitivity_to_sleep', 'cleaning_cycle', 'eating_in_room'
+        ]
+        read_only_fields = fields
