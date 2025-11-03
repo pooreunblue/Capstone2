@@ -9,7 +9,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
 from .models import User, DormInfo, Profile
-from .serializers import DormVerificationSerializer, SignUpSerializer, ProfileSerializer
+from .serializers import (
+    DormVerificationSerializer, SignUpSerializer, ProfileSerializer,
+    MatchingSummarySerializer, PublicProfileSerializer,
+    MyUserSerializer, MyDormInfoSerializer, MyProfileSerializer)
+
 
 def get_user_from_header(request):
     user_id = request.headers.get('X-User-ID')
@@ -126,7 +130,7 @@ class MatchingFeedView(APIView):
         ordered_users = [users_map[user_id] for user_id in ai_ordered_user_ids if user_id in users_map]
 
         # 최종 결과 반환
-        serializer = ProfileSerializer(
+        serializer = MatchingSummarySerializer(
             [user.profile for user in ordered_users if hasattr(user, 'profile')],
             many=True
         )
@@ -134,7 +138,40 @@ class MatchingFeedView(APIView):
 
 class UserProfileDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
-
     queryset = Profile.objects.select_related('user').all()
-    serializer_class = ProfileSerializer
+    serializer_class = PublicProfileSerializer
     lookup_field = 'user_id'
+
+
+class MyPageView(APIView):
+    permission_classes = [AllowAny]  # X-User-ID 헤더로 인증
+
+    def get(self, request, *args, **kwargs):
+        user = get_user_from_header(request)
+        if not user:
+            return Response(
+                {"detail": "헤더에 유효한 X-User-ID가 없습니다."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+            # 1. DB에서 '나'의 모든 정보를 한 번에 JOIN
+            profile = Profile.objects.select_related('user', 'user__dorminfo').get(user=user)
+            user_instance = profile.user
+            dorm_instance = user_instance.dorminfo
+
+            # 2. 3개의 '읽기 전용' Serializer로 각각 조합
+            response_data = {
+                "user_info": MyUserSerializer(user_instance).data,
+                "dorm_info": MyDormInfoSerializer(dorm_instance).data,
+                "profile_info": MyProfileSerializer(profile).data
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except (Profile.DoesNotExist, DormInfo.DoesNotExist):
+            return Response(
+                {"detail": "프로필 또는 기숙사 정보가 등록되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response({"detail": f"오류 발생: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
