@@ -253,7 +253,6 @@ class MatchingSummarySerializer(serializers.ModelSerializer):
 
 class PublicProfileSerializer(serializers.ModelSerializer):
     nickname = serializers.CharField(source='user.nickname', read_only=True)
-
     age = serializers.CharField(source='get_age_display', read_only=True)
     grade = serializers.CharField(source='get_grade_display', read_only=True)
     smoking_type = serializers.CharField(source='get_smoking_type_display', read_only=True)
