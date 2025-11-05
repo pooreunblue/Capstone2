@@ -18,9 +18,6 @@ class User(AbstractUser):
     def __str__(self):
         return self.nickname
 
-"""
-기숙사 지원 인증 정보 저장 모델
-"""
 class DormInfo(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     class SexChoices(models.TextChoices):
