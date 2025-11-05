@@ -8,5 +8,5 @@ urlpatterns = [
     path('profile/', ProfileView.as_view(), name='profile'), # 초기 내 프로필 생성/수정
     path('matching/', MatchingFeedView.as_view(), name='matching-feed'),
     path('profile/<int:user_id>/', UserProfileDetailView.as_view(), name='user-profile-detail'), # 타인 프로필
-    path('users/me/', MyPageView.as_view(), name='my-page'), # 마이페이지
+    path('mypage/', MyPageView.as_view(), name='my-page'), # 마이페이지
 ]
