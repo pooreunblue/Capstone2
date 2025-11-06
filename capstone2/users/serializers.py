@@ -7,7 +7,7 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 from rest_framework.validators import UniqueValidator
 
-from users.models import User, DormInfo, Profile
+from users.models import User, DormInfo, Profile, Message
 from users.ocr_service import call_clova_ocr
 
 # (쓰기용) 한글 -> 코드
@@ -330,3 +330,17 @@ class MyProfileSerializer(serializers.ModelSerializer):
             'sensitivity_to_sleep', 'cleaning_cycle', 'eating_in_room'
         ]
         read_only_fields = fields
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender = serializers.PrimaryKeyRelatedField(read_only=True) # 요청 Body에서는 받지 않고 View에서 직접 주입할 수 있도록 허용
+    sender_nickname = serializers.CharField(source='sender.nickname', read_only=True)
+    recipient = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        write_only=True
+    )
+    recipient_nickname = serializers.CharField(source='recipient.nickname', read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'sender', 'sender_nickname', 'recipient', 'recipient_nickname', 'content', 'timestamp', 'is_read']
+        read_only_fields = ['id', 'sender', 'sender_nickname','recipient_nickname','timestamp', 'is_read']
