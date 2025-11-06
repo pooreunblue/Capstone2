@@ -12,7 +12,7 @@ from .models import User, DormInfo, Profile
 from .serializers import (
     DormVerificationSerializer, SignUpSerializer, ProfileSerializer,
     MatchingSummarySerializer, PublicProfileSerializer,
-    MyUserSerializer, MyDormInfoSerializer, MyProfileSerializer)
+    MyUserSerializer, MyDormInfoSerializer, MyProfileSerializer, MessageSerializer)
 
 
 def get_user_from_header(request):
@@ -142,7 +142,6 @@ class UserProfileDetailView(generics.RetrieveAPIView):
     serializer_class = PublicProfileSerializer
     lookup_field = 'user_id'
 
-
 class MyPageView(APIView):
     permission_classes = [AllowAny]  # X-User-ID 헤더로 인증
 
@@ -175,3 +174,21 @@ class MyPageView(APIView):
             )
         except Exception as e:
             return Response({"detail": f"오류 발생: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class MessageSendView(generics.CreateAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = MessageSerializer
+
+    def perform_create(self, serializer):
+        sender = get_user_from_header(self.request)
+        if not sender:
+            raise serializers.ValidationError("헤더에 유효한 X-User-ID가 없습니다.")
+
+        recipient_id = self.request.data.get('recipient')
+        if not recipient_id:
+            raise serializers.ValidationError({"recipient": "받는 사람 ID가 필요합니다."})
+
+        if str(sender.id) == str(recipient_id):
+            raise serializers.ValidationError("자기 자신에게 쪽지를 보낼 수 없습니다.")
+
+        serializer.save(sender=sender)
