@@ -1,18 +1,18 @@
-from datetime import datetime
+from django.db.models import Q, OuterRef, Subquery, Max
 
 import requests
 from decouple import config
-from django.conf import settings
 from rest_framework import status, generics, serializers
+from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
-from .models import User, DormInfo, Profile
+from .models import User, DormInfo, Profile, Message
 from .serializers import (
     DormVerificationSerializer, SignUpSerializer, ProfileSerializer,
     MatchingSummarySerializer, PublicProfileSerializer,
-    MyUserSerializer, MyDormInfoSerializer, MyProfileSerializer, MessageSerializer)
+    MyUserSerializer, MyDormInfoSerializer, MyProfileSerializer, MessageSerializer, ConversationSerializer)
 
 
 def get_user_from_header(request):
@@ -192,3 +192,44 @@ class MessageSendView(generics.CreateAPIView):
             raise serializers.ValidationError("자기 자신에게 쪽지를 보낼 수 없습니다.")
 
         serializer.save(sender=sender)
+
+class ConversationListView(ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = ConversationSerializer
+
+    def get_queryset(self):
+        user = get_user_from_header(self.request)
+        if not user:
+            return Message.objects.none()
+
+        all_messages = Message.objects.filter(
+            Q(sender=user) | Q(recipient=user)
+        ).select_related('sender', 'recipient')
+
+        opponent_ids = set()
+        for msg in all_messages:
+            if msg.sender_id == user.id:
+                opponent_ids.add(msg.recipient_id)
+            else:
+                opponent_ids.add(msg.sender_id)
+
+        latest_message_ids = []
+        for opp_id in opponent_ids:
+            latest_msg_id = all_messages.filter(
+                Q(sender_id=user.id, recipient_id=opp_id) |
+                Q(sender_id=opp_id, recipient_id=user.id)
+            ).aggregate(Max('id')).get('id__max')
+
+            if latest_msg_id:
+                latest_message_ids.append(latest_msg_id)
+
+        queryset = Message.objects.filter(
+            id__in=latest_message_ids
+        ).order_by('-timestamp')
+
+        return queryset
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request_user'] = get_user_from_header(self.request)
+        return context
