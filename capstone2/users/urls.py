@@ -1,6 +1,6 @@
 from django.urls import path
 
-from users.views import SignUpView, DormVerificationView, ProfileView, MatchingFeedView, UserProfileDetailView, MyPageView, MessageSendView
+from users.views import SignUpView, DormVerificationView, ProfileView, MatchingFeedView, UserProfileDetailView, MyPageView, MessageSendView, ConversationListView
 
 urlpatterns = [
     path('signup/', SignUpView.as_view(), name='signup'),
@@ -10,4 +10,5 @@ urlpatterns = [
     path('profile/<int:user_id>/', UserProfileDetailView.as_view(), name='user-profile-detail'), # 타인 프로필
     path('mypage/', MyPageView.as_view(), name='my-page'), # 마이페이지
     path('messages/send/', MessageSendView.as_view(), name='message-send'), # 쪽지 보내기
+    path('messages/', ConversationListView.as_view(), name='message-list'), # 쪽지 리스트
 ]
