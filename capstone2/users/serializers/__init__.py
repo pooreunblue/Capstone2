@@ -1,5 +1,6 @@
 from .auth_serializers import DormVerificationSerializer, SignUpSerializer, ProfileSerializer
-from .matching_serializers import MatchingSummarySerializer, PublicProfileSerializer, MyUserSerializer, MyDormInfoSerializer, MyProfileSerializer
+from .matching_serializers import MatchingSummarySerializer, PublicProfileSerializer
+from .mypage_serializers import MyUserSerializer, MyDormInfoSerializer, MyProfileSerializer
 from .message_serializers import MessageSerializer, ConversationSerializer
 
 __all__ = [
