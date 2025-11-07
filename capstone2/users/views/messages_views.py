@@ -7,7 +7,6 @@ from users.models import Message
 from users.serializers import MessageSerializer, ConversationSerializer
 from users.utils import get_user_from_header
 
-
 class MessageSendView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     serializer_class = MessageSerializer

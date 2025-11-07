@@ -9,7 +9,6 @@ from users.models import User, DormInfo, Profile
 from users.serializers import ProfileSerializer, MatchingSummarySerializer, PublicProfileSerializer
 from users.utils import get_user_from_header
 
-
 class MatchingFeedView(APIView):
     permission_classes = [AllowAny]
 

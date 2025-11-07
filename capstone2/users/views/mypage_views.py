@@ -7,7 +7,6 @@ from users.models import Profile, DormInfo
 from users.serializers.mypage_serializers import MyUserSerializer, MyDormInfoSerializer, MyProfileSerializer
 from users.utils import get_user_from_header
 
-
 class MyPageView(APIView):
     permission_classes = [AllowAny]  # X-User-ID 헤더로 인증
 
