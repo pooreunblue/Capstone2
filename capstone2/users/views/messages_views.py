@@ -65,3 +65,29 @@ class ConversationListView(ListAPIView):
         context = super().get_serializer_context()
         context['request_user'] = get_user_from_header(self.request)
         return context
+
+class ConversationDetailView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = MessageSerializer
+
+    def get_queryset(self):
+        user = get_user_from_header(self.request)
+        if not user:
+            return Message.objects.none()
+
+        opponent_id = self.kwargs.get('user_id')
+        if not opponent_id:
+            return Message.objects.none()
+
+        Message.objects.filter(
+            sender_id=opponent_id,
+            recipient=user,
+            is_read=False
+        ).update(is_read=True)
+
+        queryset = Message.objects.filter(
+            (Q(sender=user) & Q(recipient_id=opponent_id)) |
+            (Q(sender_id=opponent_id) & Q(recipient=user))
+        ).select_related('sender', 'recipient').order_by('timestamp')
+
+        return queryset
