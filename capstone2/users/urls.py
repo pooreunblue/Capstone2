@@ -11,4 +11,5 @@ urlpatterns = [
     path('mypage/', MyPageView.as_view(), name='my-page'), # 마이페이지
     path('messages/send/', MessageSendView.as_view(), name='message-send'), # 쪽지 보내기
     path('messages/', ConversationListView.as_view(), name='message-list'), # 쪽지 리스트
+    path('messages/<int:user_id>/', ConversationDetailView.as_view(), name='conversation-detail'), # 쪽지 대화방
 ]
