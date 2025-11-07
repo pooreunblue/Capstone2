@@ -5,7 +5,6 @@ import json
 import uuid
 import time
 import os
-import re
 from decouple import config
 
 API_URL = config('CLOVA_OCR_APIGW_URL')
@@ -139,7 +138,6 @@ def process_ocr_response_with_coords(result):
         final_data_row['학년'] = ''
 
     return {"success": True, "data": final_data_row} # ⭐️ 리스트가 아닌 딕셔너리(첫 번째 행) 반환
-
 
 def call_clova_ocr(image_file_path):
     """
