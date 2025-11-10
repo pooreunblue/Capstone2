@@ -5,9 +5,20 @@ from .managers import CustomUserManager
 
 class User(AbstractUser):
     username = None
+    AGE_CHOICES = [(i, f"{i}세") for i in range(20, 101)]
     class OrderChoices(models.TextChoices):
-        FIRST = 'FIRST', '25-1학기'
-        SECOND = 'SECOND', '25-2학기'
+        FIRST = 'FIRST', '1차'
+        SECOND = 'SECOND', '2차'
+
+    class GradeChoices(models.TextChoices):
+        FRESHMAN = 'FRESHMAN', '1학년'
+        SOPHOMORE = 'SOPHOMORE', '2학년'
+        JUNIOR = 'JUNIOR', '3학년'
+        SENIOR = 'SENIOR', '4학년'
+        FIFTH_YEAR = 'FIFTH_TEAR', '5학년'
+
+    age = models.CharField("나이", max_length=10, choices=AGE_CHOICES, blank=True, null=True)
+    grade = models.CharField("학년", max_length=20, choices=GradeChoices.choices, blank=True, null=True)
     nickname = models.CharField('닉네임', max_length=20, unique=True)
     application_order = models.CharField('신청 차수', max_length=10, choices=OrderChoices.choices, blank=True, null=True)
     USERNAME_FIELD = 'nickname'
@@ -57,14 +68,6 @@ class DormInfo(models.Model):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    AGE_CHOICES = [(i, f"{i}세") for i in range(20, 101)]
-
-    class GradeChoices(models.TextChoices):
-        FRESHMAN = 'FRESHMAN', '1학년'
-        SOPHOMORE = 'SOPHOMORE', '2학년'
-        JUNIOR = 'JUNIOR', '3학년'
-        SENIOR = 'SENIOR', '4학년'
-        FIFTH_YEAR = 'FIFTH_TEAR', '5학년'
 
     class SmokingTypeChoices(models.TextChoices):
         NON_SMOKER = 'NON_SMOKER', '비흡연자'
@@ -137,8 +140,6 @@ class Profile(models.Model):
         SOMETIMES = 'SOMETIMES', '가끔 하는 편'
         OFTEN = 'OFTEN', '자주 하는 편'
 
-    age = models.CharField("나이", max_length=10, choices=AGE_CHOICES, blank=True, null=True)
-    grade = models.CharField("학년", max_length=20, choices=GradeChoices.choices, blank=True, null=True)
     smoking_type = models.CharField("흡연 종류", max_length=25, choices=SmokingTypeChoices.choices, blank=True)
     smoking_amount = models.CharField("흡연량", max_length=20, choices=SmokingAmountChoices.choices, blank=True, null=True)
     sleeping_habit = models.CharField("잠버릇 종류", max_length=20, choices=SleepingHabitChoices.choices, blank=True)
