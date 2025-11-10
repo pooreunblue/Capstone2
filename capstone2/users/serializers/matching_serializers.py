@@ -9,15 +9,15 @@ class MatchingSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = [
-            'user_id', 'nickname',
+            'user_id', 'nickname', 'age', 'grade',
             'smoking_type', 'sleeping_habit'
         ]
         read_only_fields = fields
 
 class PublicProfileSerializer(serializers.ModelSerializer):
     nickname = serializers.CharField(source='user.nickname', read_only=True)
-    age = serializers.CharField(source='get_age_display', read_only=True)
-    grade = serializers.CharField(source='get_grade_display', read_only=True)
+    age = serializers.CharField(source='user.get_age_display', read_only=True)
+    grade = serializers.CharField(source='user.get_grade_display', read_only=True)
     smoking_type = serializers.CharField(source='get_smoking_type_display', read_only=True)
     smoking_amount = serializers.CharField(source='get_smoking_amount_display', read_only=True)
     sleeping_habit = serializers.CharField(source='get_sleeping_habit_display', read_only=True)
@@ -34,8 +34,8 @@ class PublicProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = [
-            'nickname', 'age',
-            'grade', 'smoking_type', 'smoking_amount', 'sleeping_habit',
+            'nickname', 'age', 'grade',
+            'smoking_type', 'smoking_amount', 'sleeping_habit',
             'sleeping_habit_freq', 'sleeping_habit_extent',
             'life_style', 'wake_up_time', 'bed_time',
             'pre_sleeping_life_style', 'sensitivity_to_sleep',
