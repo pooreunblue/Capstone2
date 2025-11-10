@@ -3,10 +3,12 @@ from users.models import User, DormInfo, Profile
 
 class MyUserSerializer(serializers.ModelSerializer):
     application_order_display = serializers.CharField(source='get_application_order_display', read_only=False)
+    age = serializers.CharField(source='get_age_display', read_only=True)
+    grade = serializers.CharField(source='get_grade_display', read_only=True)
 
     class Meta:
         model = User
-        fields = ['nickname', 'application_order_display']
+        fields = ['nickname', 'application_order_display', 'age', 'grade']
         read_only_fields = fields
 
 class MyDormInfoSerializer(serializers.ModelSerializer):
@@ -26,8 +28,6 @@ class MyDormInfoSerializer(serializers.ModelSerializer):
 
 class MyProfileSerializer(serializers.ModelSerializer):
     # --- GET 요청 시 보여줄 한글 표시 필드 (읽기 전용) ---
-    age = serializers.CharField(source='get_age_display')
-    grade = serializers.CharField(source='get_grade_display', read_only=True)
     smoking_type = serializers.CharField(source='get_smoking_type_display', read_only=True)
     smoking_amount = serializers.CharField(source='get_smoking_amount_display', read_only=True)
     sleeping_habit = serializers.CharField(source='get_sleeping_habit_display', read_only=True)
@@ -45,7 +45,7 @@ class MyProfileSerializer(serializers.ModelSerializer):
         model = Profile
         # '내' 정보이므로 모든 필드를 한글로 포함
         fields = [
-            'age', 'grade', 'smoking_type', 'smoking_amount',
+            'smoking_type', 'smoking_amount',
             'sleeping_habit', 'sleeping_habit_freq', 'sleeping_habit_extent',
             'life_style', 'wake_up_time', 'bed_time', 'pre_sleeping_life_style',
             'sensitivity_to_sleep', 'cleaning_cycle', 'eating_in_room'
