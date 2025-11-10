@@ -9,9 +9,13 @@ from rest_framework.validators import UniqueValidator
 from users.models import User, DormInfo, Profile
 from users.ocr_service import call_clova_ocr
 
+USER_REVERSE_MAPS = {
+    'grade': {label: code for code, label in User.GradeChoices.choices},
+    'application_order': {label: code for code, label in User.OrderChoices.choices},
+}
+
 # (쓰기용) 한글 -> 코드
 PROFILE_REVERSE_MAPS = {
-    'grade': {label: code for code, label in Profile.GradeChoices.choices},
     'smoking_type': {label: code for code, label in Profile.SmokingTypeChoices.choices},
     'smoking_amount': {label: code for code, label in Profile.SmokingAmountChoices.choices},
     'sleeping_habit': {label: code for code, label in Profile.SleepingHabitChoices.choices},
@@ -24,12 +28,10 @@ PROFILE_REVERSE_MAPS = {
     'sensitivity_to_sleep': {label: code for code, label in Profile.SensitivityToSleep.choices},
     'cleaning_cycle': {label: code for code, label in Profile.CleaningCycleChoices.choices},
     'eating_in_room': {label: code for code, label in Profile.EatingInRoomChoices.choices},
-    # 'age'는 TextChoices가 아니므로 제외
 }
 
 # (읽기용) 코드 -> 한글
 PROFILE_DISPLAY_MAPS = {
-    'grade': dict(Profile.GradeChoices.choices),
     'smoking_type': dict(Profile.SmokingTypeChoices.choices),
     'smoking_amount': dict(Profile.SmokingAmountChoices.choices),
     'sleeping_habit': dict(Profile.SleepingHabitChoices.choices),
@@ -42,7 +44,6 @@ PROFILE_DISPLAY_MAPS = {
     'sensitivity_to_sleep': dict(Profile.SensitivityToSleep.choices),
     'cleaning_cycle': dict(Profile.CleaningCycleChoices.choices),
     'eating_in_room': dict(Profile.EatingInRoomChoices.choices),
-    'age': dict(Profile.AGE_CHOICES),
 }
 
 class DormVerificationSerializer(serializers.Serializer):
@@ -72,9 +73,9 @@ class DormVerificationSerializer(serializers.Serializer):
             if os.path.exists(full_temp_path):
                 os.remove(full_temp_path)
 
-        print("\n--- OCR 추출 결과 (딕셔너리 형태) ---")
-        print(json.dumps(ocr_data, indent=4, ensure_ascii=False))
-        print("---------------------------\n")
+        # print("\n--- OCR 추출 결과 (딕셔너리 형태) ---")
+        # print(json.dumps(ocr_data, indent=4, ensure_ascii=False))
+        # print("---------------------------\n")
 
         # 새로운 한글 키로 Raw 텍스트 추출
         name = ocr_data.get("이름")
@@ -84,13 +85,13 @@ class DormVerificationSerializer(serializers.Serializer):
         building_text = ocr_data.get('지원건물', "")
         room_text = ocr_data.get('지원호실구분', "")
 
-        print(f"\n[DEBUG 1] 1차 검증: student_id '{student_id}' (타입: {type(student_id)})로 중복 검사 시작...")
+        # print(f"\n[DEBUG 1] 1차 검증: student_id '{student_id}' (타입: {type(student_id)})로 중복 검사 시작...")
 
         if not student_id or DormInfo.objects.filter(student_id=student_id).exists():
             print(f"[DEBUG 1] 중복 발견 또는 학번 없음!")
             raise serializers.ValidationError({"image": "이미 가입된 학번이거나, 학번을 인식할 수 없습니다."})
 
-        print(f"[DEBUG 1] 중복 없음. 다음 단계 진행.")
+        # print(f"[DEBUG 1] 중복 없음. 다음 단계 진행.")
 
         if not name:
             raise serializers.ValidationError("OCR 인식 실패: 이름을 찾을 수 없습니다.")
@@ -152,7 +153,7 @@ class DormVerificationSerializer(serializers.Serializer):
             "room": room_enum,
             "residency_period": period_enum,
         }
-        print(f"[DEBUG 2] 최종 저장될 데이터: {validated_dorm_data}\n")
+        # print(f"[DEBUG 2] 최종 저장될 데이터: {validated_dorm_data}\n")
 
         return validated_dorm_data
 
@@ -168,12 +169,38 @@ class SignUpSerializer(serializers.Serializer):
     )
     application_order = serializers.CharField(required=False, allow_null=True)
     dorm_data = serializers.DictField(write_only=True, required=True)
+    age = serializers.CharField(required=True)
+    grade = serializers.CharField(required=True)
+
+    def validate_age(self, value):
+        # "25세" -> "25"로 변환 (DB 저장을 위해)
+        cleaned_age = str(value).replace('세', '')
+        # (선택적) AGE_CHOICES에 있는지 검증
+        if (int(cleaned_age), value) not in User.AGE_CHOICES:
+            raise serializers.ValidationError(f"'{value}'는 유효한 나이 선택지가 아닙니다.")
+        return cleaned_age  # "25" 반환
+
+    def validate_grade(self, value):
+        # "1학년" -> "FRESHMAN"으로 변환
+        code_value = USER_REVERSE_MAPS['grade'].get(value)
+        if code_value is None:
+            raise serializers.ValidationError(f"'{value}'는 유효한 학년 선택지가 아닙니다.")
+        return code_value  # "FRESHMAN" 반환
+
+    def validate_application_order(self, value):
+        # "1차" -> "FIRST"로 변환
+        code_value = USER_REVERSE_MAPS['application_order'].get(value)
+        if code_value is None:
+            raise serializers.ValidationError(f"'{value}'는 유효한 신청 차수 선택지가 아닙니다.")
+        return code_value  # "FIRST" 반환
 
     def create(self, validated_data):
         dorm_data = validated_data.pop('dorm_data')
         user = User.objects.create_user(
             nickname=validated_data['nickname'],
             application_order=validated_data.get('application_order'),
+            age=validated_data.get('age'),
+            grade=validated_data.get('grade'),
             password=None,
         )
         DormInfo.objects.create(user=user, **dorm_data)
@@ -186,7 +213,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         # DB에 저장된 모든 필드명을 그대로 사용
         fields = [
-            'student_id', 'age', 'grade', 'smoking_type', 'smoking_amount',
+            'student_id', 'smoking_type', 'smoking_amount',
             'sleeping_habit', 'sleeping_habit_freq', 'sleeping_habit_extent',
             'life_style', 'wake_up_time', 'bed_time', 'pre_sleeping_life_style',
             'sensitivity_to_sleep', 'cleaning_cycle', 'eating_in_room'
@@ -198,11 +225,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         [쓰기/수정] 클라이언트(앱)가 보낸 '한글' 데이터를 '코드'로 번역
         e.g., {"grade": "1학년"} -> {"grade": "FRESHMAN"}
         """
-        # (age는 '20세' -> '20'으로 변환)
-        if 'age' in data and data['age']:
-            # '세' 글자 제거
-            data['age'] = str(data['age']).replace('세', '')
-
+        
         # '번역 맵'을 순회하며 한글 -> 코드로 변환
         for field_name, reverse_map in PROFILE_REVERSE_MAPS.items():
             if field_name in data and data[field_name]:
@@ -224,10 +247,10 @@ class ProfileSerializer(serializers.ModelSerializer):
         [읽기/조회] DB의 '코드' 데이터를 '한글'로 번역
         e.g., instance.grade ("FRESHMAN") -> "1학년"
         """
-        # 1. 일단 ModelSerializer의 기본 로직으로 직렬화 (e.g., {"grade": "FRESHMAN"})
+        # ModelSerializer의 기본 로직으로 직렬화 (e.g., {"grade": "FRESHMAN"})
         data = super().to_representation(instance)
 
-        # 2. '번역 맵'을 순회하며 코드 -> 한글로 교체
+        # '번역 맵'을 순회하며 코드 -> 한글로 교체
         for field_name, display_map in PROFILE_DISPLAY_MAPS.items():
             if field_name in data and data[field_name]:
                 code_value = data[field_name]
