@@ -145,12 +145,12 @@ class DormVerificationSerializer(serializers.Serializer):
         # 최종 데이터 반환
         validated_dorm_data = {
             "student_id": student_id,
-            "selected_semester": selected_semester,
             "name": name,
             "sex": sex_enum,
             "building": building_enum,
-            "is_accepted": accepted_enum,
             "room": room_enum,
+            "selected_semester": selected_semester,
+            "is_accepted": accepted_enum,
             "residency_period": period_enum,
         }
         # print(f"[DEBUG 2] 최종 저장될 데이터: {validated_dorm_data}\n")
@@ -225,7 +225,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         [쓰기/수정] 클라이언트(앱)가 보낸 '한글' 데이터를 '코드'로 번역
         e.g., {"grade": "1학년"} -> {"grade": "FRESHMAN"}
         """
-        
+
         # '번역 맵'을 순회하며 한글 -> 코드로 변환
         for field_name, reverse_map in PROFILE_REVERSE_MAPS.items():
             if field_name in data and data[field_name]:
