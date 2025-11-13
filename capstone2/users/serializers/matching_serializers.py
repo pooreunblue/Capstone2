@@ -1,18 +1,32 @@
 from rest_framework import serializers
-from users.models import Profile
+from users.models import Profile, User
 
 class MatchingSummarySerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     nickname = serializers.CharField(source='user.nickname', read_only=True)
+    age = serializers.CharField(source='user.age', read_only=True)
+    grade = serializers.CharField(source='user.get_grade_display', read_only=True)
     smoking_type = serializers.CharField(source='get_smoking_type_display', read_only=True)
     sleeping_habit = serializers.CharField(source='get_sleeping_habit_display', read_only=True)
+    match_percent = serializers.SerializerMethodField()
+
     class Meta:
         model = Profile
         fields = [
             'user_id', 'nickname', 'age', 'grade',
-            'smoking_type', 'sleeping_habit'
+            'smoking_type', 'sleeping_habit',
+            'match_percent'
         ]
         read_only_fields = fields
+
+    def get_match_percent(self, obj):
+        user_id = obj.user.id
+
+        # View에서 전달한 'ai_match_data' 딕셔너리를 context에서 꺼냄.
+        ai_match_data = self.context.get('ai_match_data', {})
+
+        # 해당 user_id의 match_percent 값을 찾아서 반환.
+        return ai_match_data.get(user_id, None)
 
 class PublicProfileSerializer(serializers.ModelSerializer):
     nickname = serializers.CharField(source='user.nickname', read_only=True)
