@@ -53,21 +53,28 @@ class MatchingFeedView(APIView):
             "k": 10  # ⭐️ 상위 10명을 요청 (필요에 따라 조절)
         }
 
-        # (AI 서버 주소) .env 파일에서 AI 서버 주소를 읽어옵니다.
-        ai_url = config('AI_SERVER_URL') + '/v1/rank/topk'  # AI 팀이 알려준 엔드포인트
+        ai_url = config('AI_SERVER_URL') + '/v1/rank/topk'
 
         ai_ordered_user_ids = []
-        try:
-            # (API 호출) AI 서버에 POST 요청을 보냅니다.
-            response = requests.post(ai_url, json=ai_request_data, timeout=10)
-            response.raise_for_status()  # 200번대가 아니면 에러 발생
+        ai_match_data = {}
 
-            # (응답 파싱) AI 서버의 응답(JSON)을 파싱합니다.
+        try:
+            # (API 호출)
+            response = requests.post(ai_url, json=ai_request_data, timeout=10)
+            response.raise_for_status()
+
+            # (응답 파싱)
             ai_response_data = response.json()
 
-            # (ID 추출) 응답에서 추천 사용자 ID 목록을 추출합니다.
+            # (ID 추출)
             results = ai_response_data.get('result', [])
-            ai_ordered_user_ids = [item['candidate_id'] for item in results]  # [10, 12]
+            for item in results:
+                user_id = item['candidate_id']
+                match_percent = item.get('match_percent')  # .get()으로 안전하게 접근
+
+                ai_ordered_user_ids.append(user_id)
+                if match_percent is not None:
+                    ai_match_data[user_id] = match_percent
 
         except requests.exceptions.RequestException as e:
             # AI 서버가 다운되었거나 응답이 없는 경우
@@ -82,10 +89,15 @@ class MatchingFeedView(APIView):
         # AI가 정렬해준 ID 순서대로 User 객체 리스트를 재구성
         ordered_users = [users_map[user_id] for user_id in ai_ordered_user_ids if user_id in users_map]
 
+        serializer_context = {
+            'ai_match_data': ai_match_data
+        }
+
         # 최종 결과 반환
         serializer = MatchingSummarySerializer(
             [user.profile for user in ordered_users if hasattr(user, 'profile')],
-            many=True
+            many=True,
+            context=serializer_context
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
