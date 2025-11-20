@@ -50,17 +50,22 @@ class MatchingFeedView(APIView):
         ai_request_data = {
             "target": my_profile_data,
             "candidates": candidates_data,
-            "k": 10  # ⭐️ 상위 10명을 요청 (필요에 따라 조절)
+            "k": 5
         }
 
         ai_url = config('AI_SERVER_URL') + '/v1/rank/topk'
+
+        ai_api_key = config('AI_API_KEY')
+        ai_headers = {
+            'x-api-key': ai_api_key
+        }
 
         ai_ordered_user_ids = []
         ai_match_data = {}
 
         try:
             # (API 호출)
-            response = requests.post(ai_url, json=ai_request_data, timeout=10)
+            response = requests.post(ai_url, json=ai_request_data, headers=ai_headers, timeout=10)
             response.raise_for_status()
 
             # (응답 파싱)
