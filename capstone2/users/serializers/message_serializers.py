@@ -16,14 +16,30 @@ class MessageSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'sender', 'sender_nickname','recipient_nickname','timestamp', 'is_read']
 
 class ConversationSerializer(serializers.ModelSerializer):
+    opponent_id = serializers.SerializerMethodField()
     opponent_nickname = serializers.SerializerMethodField()
     last_message = serializers.CharField(source='content')
 
     class Meta:
         model = Message
         fields = [
-            'id', 'opponent_nickname', 'last_message', 'timestamp', 'is_read'
+            'id', 'opponent_id', 'opponent_nickname', 'last_message', 'timestamp', 'is_read'
         ]
+
+    def get_opponent_id(self, message):
+        """
+        현재 요청한 사용자(request_user)를 기준으로 상대방의 ID를 반환.
+        """
+        request_user = self.context.get('request_user')
+        if not request_user:
+            return None
+
+        # 내가 보낸 메시지라면, 받는 사람이 상대방
+        if message.sender == request_user:
+            return message.recipient.id
+        # 내가 받은 메시지라면, 보낸 사람이 상대방
+        else:
+            return message.sender.id
 
     def get_opponent_nickname(self, message):
         request_user = self.context.get('request_user')
