@@ -77,7 +77,7 @@ class MatchingFeedView(APIView):
 
         try:
             # (API 호출)
-            response = requests.post(ai_url, json=ai_request_data, headers=ai_headers, timeout=20)
+            response = requests.post(ai_url, json=ai_request_data, headers=ai_headers, timeout=30)
             response.raise_for_status()
 
             # (응답 파싱)
@@ -93,11 +93,14 @@ class MatchingFeedView(APIView):
                 if match_percent is not None:
                     ai_match_data[user_id] = match_percent
 
-        except requests.exceptions.RequestException as e:
-            # AI 서버가 다운되었거나 응답이 없는 경우
-            return Response({"detail": f"매칭 서버와 통신 중 오류가 발생했습니다: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except requests.exceptions.Timeout:
+            print("AI Server Timeout")
+            return Response({"detail": "매칭 서버 응답 시간이 초과되었습니다."}, status=status.HTTP_504_GATEWAY_TIMEOUT)
+        except requests.exceptions.ConnectionError:
+            print("AI Server Connection Failed")
+            return Response({"detail": f"매칭 서버와 연결할 수 없습니다."}, status=status.HTTP_502_BAD_GATEWAY)
         except Exception as e:
-            # AI 서버가 비정상적인 응답을 준 경우 (예: "ok": false)
+            print(f"AI Server Error: {e}")
             return Response({"detail": f"매칭 결과를 처리하는 중 오류가 발생했습니다: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # 1차 필터링했던 후보자 리스트(candidates_pool)를 딕셔너리로 변환 (빠른 검색용)
