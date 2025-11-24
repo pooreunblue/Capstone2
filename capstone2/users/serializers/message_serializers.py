@@ -19,11 +19,12 @@ class ConversationSerializer(serializers.ModelSerializer):
     opponent_id = serializers.SerializerMethodField()
     opponent_nickname = serializers.SerializerMethodField()
     last_message = serializers.CharField(source='content')
+    last_sender_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = [
-            'id', 'opponent_id', 'opponent_nickname', 'last_message', 'timestamp', 'is_read'
+            'id', 'opponent_id', 'opponent_nickname', 'last_message', 'timestamp', 'is_read', 'last_sender_id'
         ]
 
     def get_opponent_id(self, message):
@@ -51,3 +52,6 @@ class ConversationSerializer(serializers.ModelSerializer):
             return message.recipient.nickname
         else:
             return message.sender.nickname
+
+    def get_last_sender_id(self, message):
+        return message.sender_id
