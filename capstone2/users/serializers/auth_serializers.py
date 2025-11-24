@@ -53,8 +53,11 @@ class DormVerificationSerializer(serializers.Serializer):
         image = data.get('image')
 
         # 임시 파일 저장
-        temp_file_name = f"ocr_temp_{uuid.uuid4()}.{image.name.split('.')[-1]}"
-        temp_file_path = os.path.join(settings.MEDIA_ROOT, temp_file_name)
+        ext = os.path.splitext(image.name)[1]
+        temp_file_name = f"ocr_temp_{uuid.uuid4()}.{ext}"
+        temp_file_path = temp_file_name
+
+        full_temp_path = None
 
         try:
             path = default_storage.save(temp_file_path, image)
@@ -69,8 +72,7 @@ class DormVerificationSerializer(serializers.Serializer):
             ocr_data = ocr_result.get("data")  # ocr_data는 딕셔너리.
 
         finally:
-            # 임시 파일 삭제 (기존 로직과 동일)
-            if os.path.exists(full_temp_path):
+            if full_temp_path and os.path.exists(full_temp_path):
                 os.remove(full_temp_path)
 
         # print("\n--- OCR 추출 결과 (딕셔너리 형태) ---")
