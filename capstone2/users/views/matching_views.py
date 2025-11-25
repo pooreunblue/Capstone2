@@ -15,7 +15,7 @@ class MatchingFeedView(APIView):
     ITEMS_PER_PAGE = 5
 
     def get(self, request):
-        current_user = get_user_from_header(request)
+        current_user = get_user_from_header(self.request)
         if not current_user:
                 return Response({"detail": "헤더에 유효한 X-User-ID가 없습니다."}, status=status.HTTP_401_UNAUTHORIZED)
 
