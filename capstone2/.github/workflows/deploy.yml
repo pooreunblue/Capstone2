@@ -1,0 +1,46 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Execute remote ssh commands using key
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        port: 22
+
+        script: |
+          
+          cd /home/ubuntu/Capstone2/capstone2
+          
+          git pull origin main
+          
+          source ../venv/bin/activate
+          
+          # 패키지 설치 
+          # pip install -r requirements.txt
+          
+          # 마이그레이션
+          python manage.py migrate
+          
+          # 정적 파일 모으기 (CSS, JS 등 업데이트)
+          # --noinput: 'Yes/No' 물어보지 말고 무조건 진행하라는 옵션
+          python manage.py collectstatic --noinput
+          
+          # 7. Gunicorn 서버 재시작 (변경된 코드 반영)
+          sudo systemctl restart gunicorn
+          
+          # 8. (선택) Nginx 재시작 (설정 변경이 거의 없으므로 굳이 안 해도 됨)
+          # sudo systemctl restart nginx
